@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/getlantern/systray"
+
 	"github.com/hajimehoshi/ebiten/v2"
 
 	"github.com/hajimehoshi/ebiten/v2/audio"
@@ -38,7 +40,7 @@ type neko struct {
 
 type Config struct {
 	Speed int     `ini:"speed" cfg:"speed" cfgDefault:"2" cfgHelper:"The speed of the cat."`
-	Scale float64 `ini:"scale" cfg:"scale" cfgDefault:"2.0" cfgHelper:"The scale of the cat."`
+	Scale float64 `ini:"scale" cfg:"scale" cfgDefault:"1.0" cfgHelper:"The scale of the cat."`
 }
 
 var (
@@ -74,7 +76,7 @@ func playSound(sound []byte) {
 func (m *neko) Update() error {
 	m.count++
 	if m.state == 10 && m.count == m.min {
-		playSound(mSound["idle3"])
+		//playSound(mSound["idle3"])
 	}
 	// Prevents neko from being stuck on the side of the screen
 	// or randomly travelling to another monitor
@@ -104,7 +106,7 @@ func (m *neko) Update() error {
 	}
 
 	if m.state >= 13 {
-		playSound(mSound["awake"])
+		//playSound(mSound["awake"])
 	}
 	m.catchCursor(x, y)
 	return nil
@@ -212,7 +214,7 @@ func (m *neko) Draw(screen *ebiten.Image) {
 			m.state++
 			switch m.state {
 			case 13:
-				playSound(mSound["sleep"])
+				//playSound(mSound["sleep"])
 			}
 		}
 	}
@@ -231,6 +233,8 @@ func (m *neko) Draw(screen *ebiten.Image) {
 }
 
 func main() {
+	systray.Register(onReady, onExit)
+
 	config.PrefixEnv = "NEKO"
 	config.File = "neko.ini"
 	config.Parse(cfg)
@@ -292,8 +296,29 @@ func main() {
 
 	err := ebiten.RunGameWithOptions(n, &ebiten.RunGameOptions{
 		ScreenTransparent: true,
+		SkipTaskbar:       true,
 	})
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+func onReady() {
+	data1, _ := f.ReadFile("assets/awake.ico")
+	systray.SetIcon(data1)
+	systray.SetTitle("oneko")
+	systray.SetTooltip("Neko App")
+	mQuit := systray.AddMenuItem("Quit", "Quit program")
+	go func() {
+		<-mQuit.ClickedCh
+		systray.Quit()
+	}()
+
+	// Sets the icon of a menu item. Only available on Mac and Windows.
+	mQuit.SetIcon(data1)
+
+}
+
+func onExit() {
+	// clean up here
 }
